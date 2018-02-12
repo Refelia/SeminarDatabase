@@ -495,24 +495,22 @@ END TRY
 
 
 
---/* 6. Solution  --not complete
---*/
---declare @2yearPlan money
---DEclare @1yearPlan money
---declare @Quarterly money
---declare @Monthly money
---set @2yearPlan = (select (price)/24 from SubscriptionType where SubscriptionTypeID =1 )
---set @1yearPlan = (select (Price)/12 from SubscriptionType where SubscriptionTypeID = 2)
---set @Quarterly = (select (price)/3 from SubscriptionType where SubscriptionTypeID = 3)
---set @Monthly = (select price  from SubscriptionType where SubscriptionTypeID = 4)
- 
---select MemberID, s.SubscriptionTypeID, Subscription,  price, Price/24 as [monthly payment], DateStarted,
---         DATEADD(year,2, DateStarted) as [renewal date]
---from MembersSubscription m
---inner join SubscriptionType s
---on m.SubscriptionID = s.SubscriptionTypeID
---where s.SubscriptionTypeID =1
 
+/* 6. Solution 
+    Stored Procedure to get monthly income */
+GO
+  CREATE PROCEDURE SpMonthlyIncome 
+  
+   @StartDate datetime ,
+   @EndDAte  datetime
+ AS
+ 
+			 select Sum(TotalCharges), DATENAME(MONTH,(TransactionDate)) AS [MONTH]  
+			 FROM MembersCCTransactions
+			 WHERE TransactionDate BETWEEN @StartDate AND @EndDate
+			 GROUP BY DATENAME(MONTH,(TransactionDate))
+--TEST
+--EXECUTE  SpMonthlyIncome '1/1/17',' 1/31/17'
 
 
 
