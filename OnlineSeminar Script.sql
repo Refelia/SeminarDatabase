@@ -1,12 +1,12 @@
 Use master
-
+GO
 IF (Select Count(*) FROM sys.databases where name = 'OnlineSeminar' )>0
 Begin 
       Drop database OnlineSeminar
 END
-
+ 
   Create database OnlineSeminar
-
+  GO
   Use OnlineSeminar
 GO
 
@@ -86,7 +86,8 @@ CREATE TABLE MembersPassword
 	    PasswordHash  nvarchar(max),
 		Salt         nvarchar(max),
 	    ChangeDate   datetime,
-	  
+		ISChange     bit
+  
 CONSTRAINT fk_MembersPassword_Members foreign key (MemberID) references Members (MemberID)
         )
 CREATE TABLE   SubscriptionType
@@ -260,7 +261,7 @@ VALUES	(1,'bfallon0@artisteer.com'),(2,'vgepp1@nih.gov'),(3,'ceatttok2@google.co
 INSERT INTO SubscriptionType
         ([Subscription],[Price],[RenewalAmt] )
 
-VALUES  ('2 Year Plan',	$189, $80), ('1 Year Plan',	$99, $45 ),('Quarterly',	$27, $25 ),('Monthly',	$9.99, $15 )
+VALUES  ('2 Year Plan',	$189, $80), ('1 Year Plan',	$99, $45 ),('Quarterly',	$27, $25 ),('Monthly',	$9.99, $15 ),('Free Membership',$0.00, $0.00)
 
 
 /* INSERT INTO MEMBERSSUBSCRIPTION
@@ -444,19 +445,23 @@ AS
 
 /*   #4 Solution   --NOT COMPLETE
 */
---	select * from MembersSubscription
---	select * from SubscriptionType
+--GO
+--ALTER Procedure SpScheduleBilling
+--	@SubscrriptionType int
+
+-- AS
+
+--		select m.MemberID, Subscription, cast(DateStarted as date) as [Date Joined], 
+--		CASE WHEN SubscriptionTypeID    DATEADD(YEAR,1,DateStarted) RenewalDate, RenewalAmt
+--		from Members m
+--		inner join MembersSubscription ms
+--		on ms.MemberID = m.MemberID 
+--		inner join SubscriptionType st
+--		on st.SubscriptionTypeID = ms.SubscriptionTypeID
+--		where ms.SubscriptionTypeID = @SubscrriptionType
 
 
---select m.MemberID, Subscription, cast(DateStarted as date) as [Date Joined], Price, RenewalAmt
---from Members m
---inner join MembersSubscription ms
---on ms.MemberID = m.MemberID 
---inner join SubscriptionType st
---on st.SubscriptionTypeID = ms.SubscriptionTypeID
---where Active = 0 
-
-
+--execute SpScheduleBilling '4'
 
  /* 5. SOLUTION --NOT TESTED
  */
@@ -507,7 +512,7 @@ GO
  
 			 select Sum(TotalCharges), DATENAME(MONTH,(TransactionDate)) AS [MONTH]  
 			 FROM MembersCCTransactions
-			 WHERE TransactionDate BETWEEN @StartDate AND @EndDate
+			 WHERE TransactionDate BETWEEN @StartDate AND @EndDate AND Results = 'Approved'
 			 GROUP BY DATENAME(MONTH,(TransactionDate))
 --TEST
 --EXECUTE  SpMonthlyIncome '1/1/17',' 1/31/17'
@@ -543,16 +548,18 @@ GO
 GO
 CREATE FUNCTION FNAttendanceCount
 (
-       @EventID int
+       @StartDate date,
+	   @EndDate date
 )
 RETURNS TABLE
 AS
 RETURN
-		SELECT   max(EventTitle) as [Event Title], max(EventDate) as[Date],COUNT(MemberID) AS [Members Attended]
+		SELECT   max(EventDate) as[Date], MAX(EventTitle) Title, COUNT(MemberID) AS [Members Attended]
 		FROM EventAttendance a INNER JOIN MembersEvent e ON a.EventID = e.EventID
-		WHERE e.EventID = @EventID
+		WHERE e.EventDate between @StartDate and @EndDate
+		GROUP BY EventDate
 --TEST
---SELECT * FROM dbo.FNAttendanceCount(1)
+--SELECT * FROM dbo.FNAttendanceCount( '2017/01/01','2017/03/31')
 
 
 /* 9. SOLUTION 
@@ -639,7 +646,7 @@ BEGIN
 		ELSE
       
 	   SET @responseMessage='Invalid login'
-
+	   
 END
 	
 Go
